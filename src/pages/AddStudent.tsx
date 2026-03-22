@@ -89,7 +89,7 @@ const AddStudent = () => {
             <div className="card-elevated p-6 space-y-4">
               <h2 className="text-lg font-semibold">Student Information</h2>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Bhomik" required />
@@ -98,9 +98,6 @@ const AddStudent = () => {
                   <Label htmlFor="age">Age</Label>
                   <Input id="age" type="number" min="3" max="99" value={age} onChange={e => setAge(e.target.value)} placeholder="e.g. 7" required />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="subject">Subject</Label>
                   {profile && profile.subjects.length > 0 ? (
@@ -118,6 +115,7 @@ const AddStudent = () => {
                     <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Chess" required />
                   )}
                 </div>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
