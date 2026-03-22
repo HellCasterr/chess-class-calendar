@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getStudents, getClasses } from '@/lib/store';
-import { formatTimeDisplay, formatDateDisplay } from '@/lib/scheduler';
+import { formatTimeDisplay } from '@/lib/scheduler';
 import { COMMON_TIMEZONES } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import CalendarView from '@/components/CalendarView';
@@ -11,38 +11,58 @@ import { Plus, Users, Calendar, Clock, BookOpen, LogOut } from 'lucide-react';
 const Index = () => {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+
   const students = useMemo(() => getStudents(), []);
   const allClasses = useMemo(() => getClasses(), []);
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayClasses = allClasses.filter((c) => c.scheduledDate === todayStr && c.status !== 'completed' && c.status !== 'cancelled');
-  const upcomingClasses = allClasses.
-  filter((c) => c.status !== 'completed' && c.status !== 'cancelled').
-  sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate)).
-  slice(0, 5);
+  const getClassDateTime = (cls: { scheduledDate: string; scheduledTime: string }) => {
+    return new Date(`${cls.scheduledDate}T${cls.scheduledTime}:00`);
+  };
 
-  const completedCount = allClasses.filter((c) => c.status === 'completed').length;
+  const isCompletedByTime = (cls: { scheduledDate: string; scheduledTime: string; status: string }) => {
+    if (cls.status === 'cancelled') return false;
+    const classDateTime = getClassDateTime(cls);
+    return !Number.isNaN(classDateTime.getTime()) && classDateTime.getTime() < Date.now();
+  };
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const todayClasses = allClasses.filter(
+    (c) => c.scheduledDate === todayStr && !isCompletedByTime(c) && c.status !== 'cancelled'
+  );
+
+  const upcomingClasses = allClasses
+    .filter((c) => !isCompletedByTime(c) && c.status !== 'cancelled')
+    .sort((a, b) => getClassDateTime(a).getTime() - getClassDateTime(b).getTime())
+    .slice(0, 5);
+
+  const completedCount = allClasses.filter((c) => isCompletedByTime(c)).length;
   const cancelledCount = allClasses.filter((c) => c.status === 'cancelled').length;
-  const upcomingCount = allClasses.filter((c) => c.status !== 'completed' && c.status !== 'cancelled').length;
+  const upcomingCount = allClasses.filter((c) => !isCompletedByTime(c) && c.status !== 'cancelled').length;
 
   const studentMap = useMemo(() => {
     const map: Record<string, string> = {};
-    students.forEach((s) => {map[s.id] = s.name;});
+    students.forEach((s) => {
+      map[s.id] = s.name;
+    });
     return map;
   }, [students]);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between text-lg font-bold text-left text-primary">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-xl font-bold">Class Scheduler</h1>
-              {profile && <p className="text-xs text-muted-foreground">{profile.coach_name} · {profile.subjects.join(', ')}</p>}
+              {profile && (
+                <p className="text-xs text-muted-foreground">
+                  {profile.coach_name} · {Array.isArray(profile.subjects) ? profile.subjects.join(', ') : ''}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -57,7 +77,6 @@ const Index = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 animate-fade-in-up">
           <div className="card-elevated p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -66,6 +85,7 @@ const Index = () => {
             </div>
             <p className="text-3xl font-bold tabular-nums">{students.length}</p>
           </div>
+
           <div className="card-elevated p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Calendar className="w-4 h-4" />
@@ -73,6 +93,7 @@ const Index = () => {
             </div>
             <p className="text-3xl font-bold tabular-nums">{todayClasses.length}</p>
           </div>
+
           <div className="card-elevated p-4">
             <div className="flex items-center gap-2 text-primary mb-1">
               <Clock className="w-4 h-4" />
@@ -80,6 +101,7 @@ const Index = () => {
             </div>
             <p className="text-3xl font-bold tabular-nums">{upcomingCount}</p>
           </div>
+
           <div className="card-elevated p-4">
             <div className="flex items-center gap-2 text-success mb-1">
               <BookOpen className="w-4 h-4" />
@@ -90,63 +112,63 @@ const Index = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Calendar */}
           <div className="lg:col-span-2 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
             <h2 className="text-lg font-semibold mb-4">Calendar</h2>
             <CalendarView classes={allClasses} />
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-            {/* Today's Classes */}
             <div>
               <h2 className="text-lg font-semibold mb-4">Today's Classes</h2>
-              {todayClasses.length === 0 ?
-              <div className="card-elevated p-6 text-center text-muted-foreground text-sm">
+              {todayClasses.length === 0 ? (
+                <div className="card-elevated p-6 text-center text-muted-foreground text-sm">
                   No classes today
-                </div> :
-
-              <div className="space-y-2">
-                  {todayClasses.map((cls) =>
-                <div key={cls.id} className="card-elevated p-3">
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {todayClasses.map((cls) => (
+                    <div key={cls.id} className="card-elevated p-3">
                       <p className="font-medium">{studentMap[cls.studentId]}</p>
                       <p className="text-sm text-muted-foreground font-mono">
                         {formatTimeDisplay(cls.scheduledTime)} IST
                       </p>
                     </div>
-                )}
+                  ))}
                 </div>
-              }
+              )}
             </div>
 
-            {/* Students List */}
             <div>
               <h2 className="text-lg font-semibold mb-4">Students</h2>
-              {students.length === 0 ?
-              <div className="card-elevated p-6 text-center">
+              {students.length === 0 ? (
+                <div className="card-elevated p-6 text-center">
                   <p className="text-muted-foreground text-sm mb-3">No students yet</p>
                   <Button variant="outline" size="sm" onClick={() => navigate('/add-student')}>
                     <Plus className="w-4 h-4 mr-1" /> Add First Student
                   </Button>
-                </div> :
-
-              <div className="space-y-2">
+                </div>
+              ) : (
+                <div className="space-y-2">
                   {students.map((student) => {
-                  const studentClasses = allClasses.filter((c) => c.studentId === student.id);
-                  const done = studentClasses.filter((c) => c.status === 'completed').length;
-                  const tzLabel = COMMON_TIMEZONES.find((t) => t.value === student.timezone)?.label?.split('(')[0]?.trim() || student.country;
+                    const studentClasses = allClasses.filter((c) => c.studentId === student.id);
+                    const done = studentClasses.filter((c) => isCompletedByTime(c)).length;
+                    const tzLabel =
+                      COMMON_TIMEZONES.find((t) => t.value === student.timezone)?.label?.split('(')[0]?.trim() ||
+                      student.country;
 
-                  return (
-                    <Link
-                      key={student.id}
-                      to={`/student/${student.id}`}
-                      className="card-elevated p-4 block hover:border-primary/30 transition-colors">
-                      
+                    return (
+                      <Link
+                        key={student.id}
+                        to={`/student/${student.id}`}
+                        className="card-elevated p-4 block hover:border-primary/30 transition-colors"
+                      >
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">{student.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {student.subject && <span className="font-medium text-primary">{student.subject} · </span>}
+                              {student.subject && (
+                                <span className="font-medium text-primary">{student.subject} · </span>
+                              )}
                               {student.country} · Age {student.age}
                             </p>
                           </div>
@@ -155,17 +177,17 @@ const Index = () => {
                             <p className="text-xs text-muted-foreground">classes</p>
                           </div>
                         </div>
-                      </Link>);
-
-                })}
+                      </Link>
+                    );
+                  })}
                 </div>
-              }
+              )}
             </div>
           </div>
         </div>
       </main>
-    </div>);
-
+    </div>
+  );
 };
 
 export default Index;
