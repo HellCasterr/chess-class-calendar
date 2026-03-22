@@ -149,7 +149,6 @@ const Index = () => {
                               {student.subject && <span className="font-medium text-primary">{student.subject} · </span>}
                               {student.country} · Age {student.age}
                             </p>
-                            </p>
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-mono tabular-nums">{done}/{student.totalClasses}</p>
