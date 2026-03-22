@@ -4,6 +4,7 @@ export interface Student {
   age: number;
   country: string;
   timezone: string;
+  subject: string;
   totalClasses: number;
   classesPerWeek: number;
   schedule: ScheduleSlot[];

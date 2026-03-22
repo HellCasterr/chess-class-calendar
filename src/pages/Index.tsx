@@ -3,12 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getStudents, getClasses } from '@/lib/store';
 import { formatTimeDisplay, formatDateDisplay } from '@/lib/scheduler';
 import { COMMON_TIMEZONES } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 import CalendarView from '@/components/CalendarView';
 import { Button } from '@/components/ui/button';
-import { Plus, Users, Calendar, Clock, BookOpen } from 'lucide-react';
+import { Plus, Users, Calendar, Clock, BookOpen, LogOut } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
   const students = useMemo(() => getStudents(), []);
   const allClasses = useMemo(() => getClasses(), []);
   
@@ -38,11 +40,19 @@ const Index = () => {
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h1 className="text-xl font-bold">Chess Class Scheduler</h1>
+            <div>
+              <h1 className="text-xl font-bold">Class Scheduler</h1>
+              {profile && <p className="text-xs text-muted-foreground">{profile.coach_name} · {profile.subjects.join(', ')}</p>}
+            </div>
           </div>
-          <Button onClick={() => navigate('/add-student')} className="active:scale-[0.97] transition-transform">
-            <Plus className="w-4 h-4 mr-2" /> Add Student
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => navigate('/add-student')} className="active:scale-[0.97] transition-transform">
+              <Plus className="w-4 h-4 mr-2" /> Add Student
+            </Button>
+            <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -136,6 +146,7 @@ const Index = () => {
                           <div>
                             <p className="font-medium">{student.name}</p>
                             <p className="text-xs text-muted-foreground">
+                              {student.subject && <span className="font-medium text-primary">{student.subject} · </span>}
                               {student.country} · Age {student.age}
                             </p>
                           </div>

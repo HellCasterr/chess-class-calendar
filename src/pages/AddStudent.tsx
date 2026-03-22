@@ -8,15 +8,18 @@ import { Student, ScheduleSlot, DayOfWeek, DAYS_OF_WEEK, COMMON_TIMEZONES } from
 import { addStudent } from '@/lib/store';
 import { generateClasses } from '@/lib/scheduler';
 import { addClasses } from '@/lib/store';
+import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 
 const AddStudent = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [country, setCountry] = useState('');
   const [timezone, setTimezone] = useState('');
   const [totalClasses, setTotalClasses] = useState('');
+  const [subject, setSubject] = useState(profile?.subjects?.[0] || '');
   const [classesPerWeek, setClassesPerWeek] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [inputTimezone, setInputTimezone] = useState('');
@@ -49,6 +52,7 @@ const AddStudent = () => {
       age: parseInt(age),
       country,
       timezone,
+      subject,
       totalClasses: parseInt(totalClasses),
       classesPerWeek: parseInt(classesPerWeek),
       schedule: scheduleSlots.map(s => ({
@@ -85,7 +89,7 @@ const AddStudent = () => {
             <div className="card-elevated p-6 space-y-4">
               <h2 className="text-lg font-semibold">Student Information</h2>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Bhomik" required />
@@ -93,6 +97,23 @@ const AddStudent = () => {
                 <div className="space-y-2">
                   <Label htmlFor="age">Age</Label>
                   <Input id="age" type="number" min="3" max="99" value={age} onChange={e => setAge(e.target.value)} placeholder="e.g. 7" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject</Label>
+                  {profile && profile.subjects.length > 0 ? (
+                    <Select value={subject} onValueChange={setSubject}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {profile.subjects.map(s => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Chess" required />
+                  )}
                 </div>
               </div>
 
