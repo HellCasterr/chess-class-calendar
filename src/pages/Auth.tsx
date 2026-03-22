@@ -38,40 +38,50 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-200 px-4">
-      
-      <div className="w-full max-w-md backdrop-blur-xl bg-white/70 border border-white/30 shadow-xl rounded-2xl p-8">
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
 
+      {/* 🔥 Background Gradient */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(at_40%_20%,#667eea_0px,transparent_50%),radial-gradient(at_80%_0%,#764ba2_0px,transparent_50%),radial-gradient(at_0%_50%,#f97316_0px,transparent_50%),radial-gradient(at_80%_50%,#14b8a6_0px,transparent_50%)]"></div>
+
+      {/* 🔥 Glass Card */}
+      <div className="w-full max-w-md backdrop-blur-xl bg-white/60 border border-white/20 shadow-2xl rounded-3xl p-8">
+
+        {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Coach Login</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Coach Login
+          </h1>
           <p className="text-sm text-muted-foreground mt-2">
             Manage your classes like a pro
           </p>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-5">
           <Input
             type="email"
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="h-12 text-base"
+            className="h-12 text-base rounded-xl"
           />
 
           <Button
-            className="w-full h-12 text-base font-medium transition-all hover:scale-[1.02]"
+            className="w-full h-12 text-base font-medium rounded-xl transition-all hover:scale-[1.02] hover:shadow-lg"
             disabled={sending}
           >
             {sending ? "Sending..." : "Send magic link"}
           </Button>
         </form>
 
+        {/* Feedback */}
         {sent && (
           <p className="text-sm text-center mt-4 text-muted-foreground">
             Check your email to continue
           </p>
         )}
 
+        {/* Footer */}
         <p className="text-xs text-center mt-6 text-muted-foreground">
           Made by Bhomik
         </p>
