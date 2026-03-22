@@ -8,6 +8,7 @@ import { Student, ScheduleSlot, DayOfWeek, DAYS_OF_WEEK, COMMON_TIMEZONES } from
 import { addStudent } from '@/lib/store';
 import { generateClasses } from '@/lib/scheduler';
 import { addClasses } from '@/lib/store';
+import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 
 const AddStudent = () => {
