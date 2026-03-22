@@ -4,6 +4,7 @@ import { getStudents, getClasses } from '@/lib/store';
 import { formatTimeDisplay, formatDateDisplay } from '@/lib/scheduler';
 import { useAuth } from '@/contexts/AuthContext';
 import CalendarView from '@/components/CalendarView';
+import AppShell from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import {
   Plus,
@@ -121,6 +122,7 @@ const Index = () => {
   const nextClass = upcomingClasses[0] || null;
 
   return (
+      <AppShell>
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
@@ -128,6 +130,7 @@ const Index = () => {
             <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-sm shrink-0">
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
+            </AppShell>
 
             <div className="min-w-0">
               <h1 className="text-xl font-bold truncate">Class Planner</h1>
