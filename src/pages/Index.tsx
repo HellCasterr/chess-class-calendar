@@ -14,7 +14,6 @@ import {
   LogOut,
   ArrowRight,
   Sparkles,
-  UserCircle2,
 } from 'lucide-react';
 
 const Index = () => {
@@ -55,6 +54,14 @@ const Index = () => {
       timeZoneName: 'short',
     }).format(now);
   }, [now, coachTimezone]);
+
+  const coachInitials =
+    profile?.coach_name
+      ?.trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || '')
+      .join('') || 'C';
 
   const getClassDateTime = (cls: { scheduledDate: string; scheduledTime: string }) => {
     return new Date(`${cls.scheduledDate}T${cls.scheduledTime}:00`);
@@ -124,9 +131,7 @@ const Index = () => {
 
             <div className="min-w-0">
               <h1 className="text-xl font-bold truncate">Class Planner</h1>
-              <p className="text-xs text-muted-foreground truncate">
-                {subjectLine}
-              </p>
+              <p className="text-xs text-muted-foreground truncate">{subjectLine}</p>
               <div className="mt-1 space-y-0.5">
                 <p className="text-xs text-muted-foreground truncate">
                   <span className="font-medium text-foreground">Coach Name:</span> {greetingName}
@@ -142,10 +147,12 @@ const Index = () => {
             <Button
               variant="outline"
               onClick={() => navigate('/profile')}
-              className="rounded-xl"
+              className="rounded-xl gap-2 px-3"
             >
-              <UserCircle2 className="w-4 h-4 mr-2" />
-              Profile
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                {coachInitials}
+              </span>
+              <span className="hidden sm:inline">Profile</span>
             </Button>
 
             <Button
