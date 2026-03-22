@@ -54,8 +54,7 @@ const StudentDetail = () => {
   };
 
   const handleMarkCancelled = (cls: ChessClass) => {
-    const updated: ChessClass = { ...cls, status: 'cancelled' };
-    updateClass(updated);
+    cancelClassAndGenerateReplacement(cls);
     setRefreshKey(k => k + 1);
   };
 
