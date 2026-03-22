@@ -7,7 +7,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import AddStudent from "./pages/AddStudent";
 import StudentDetail from "./pages/StudentDetail";
-import Auth from "./pages/Auth";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 
@@ -22,13 +23,8 @@ const FullScreenMessage = ({ message }: { message: string }) => (
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return <FullScreenMessage message="Loading..." />;
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
+  if (loading) return <FullScreenMessage message="Loading..." />;
+  if (!user) return <Navigate to="/login" replace />;
 
   return <>{children}</>;
 };
@@ -40,13 +36,8 @@ const RequireProfile = ({ children }: { children: React.ReactNode }) => {
     return <FullScreenMessage message="Loading profile..." />;
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  if (!profile) {
-    return <Navigate to="/register" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
+  if (!profile) return <Navigate to="/register" replace />;
 
   return <>{children}</>;
 };
@@ -58,20 +49,16 @@ const RegisterRoute = () => {
     return <FullScreenMessage message="Loading..." />;
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  if (profile) {
-    return <Navigate to="/" replace />;
-  }
+  if (!user) return <Navigate to="/signup" replace />;
+  if (profile) return <Navigate to="/" replace />;
 
   return <Register />;
 };
 
 const AppRoutes = () => (
   <Routes>
-    <Route path="/auth" element={<Auth />} />
+    <Route path="/login" element={<Login />} />
+    <Route path="/signup" element={<Signup />} />
     <Route path="/register" element={<RegisterRoute />} />
 
     <Route
@@ -107,7 +94,7 @@ const AppRoutes = () => (
       }
     />
 
-    <Route path="*" element={<NotFound />} />
+    <Route path="*" element={<Navigate to="/login" replace />} />
   </Routes>
 );
 
