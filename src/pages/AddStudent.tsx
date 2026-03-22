@@ -1,19 +1,27 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AppHeader from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Student, ScheduleSlot, DayOfWeek, DAYS_OF_WEEK, COMMON_TIMEZONES } from '@/lib/types';
-import { addStudent } from '@/lib/store';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Student, DayOfWeek, DAYS_OF_WEEK, COMMON_TIMEZONES } from '@/lib/types';
+import { addStudent, addClasses } from '@/lib/store';
 import { generateClasses } from '@/lib/scheduler';
-import { addClasses } from '@/lib/store';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const AddStudent = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
+
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [country, setCountry] = useState('');
@@ -22,10 +30,11 @@ const AddStudent = () => {
   const [subject, setSubject] = useState(profile?.subjects?.[0] || '');
   const [classesPerWeek, setClassesPerWeek] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [inputTimezone, setInputTimezone] = useState('');
+  const [inputTimezone, setInputTimezone] = useState(profile?.timezone || '');
   const [scheduleSlots, setScheduleSlots] = useState<{ day: DayOfWeek; time: string }[]>([
-    { day: 'monday', time: '14:00' }
+    { day: 'monday', time: '14:00' },
   ]);
+  const [submitting, setSubmitting] = useState(false);
 
   const addSlot = () => {
     if (scheduleSlots.length < 7) {
@@ -45,17 +54,34 @@ const AddStudent = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (!name.trim() || !age || !country.trim() || !timezone || !totalClasses || !classesPerWeek) {
+      toast.error('Please fill all required fields.');
+      return;
+    }
+
+    if (scheduleSlots.length === 0) {
+      toast.error('Please add at least one schedule slot.');
+      return;
+    }
+
+    if (Number(classesPerWeek) !== scheduleSlots.length) {
+      toast.error('Classes per week should match the number of weekly schedule slots.');
+      return;
+    }
+
+    setSubmitting(true);
+
     const student: Student = {
       id: crypto.randomUUID(),
-      name,
-      age: parseInt(age),
-      country,
+      name: name.trim(),
+      age: parseInt(age, 10),
+      country: country.trim(),
       timezone,
-      subject,
-      totalClasses: parseInt(totalClasses),
-      classesPerWeek: parseInt(classesPerWeek),
-      schedule: scheduleSlots.map(s => ({
+      subject: subject.trim(),
+      totalClasses: parseInt(totalClasses, 10),
+      classesPerWeek: parseInt(classesPerWeek, 10),
+      schedule: scheduleSlots.map((s) => ({
         ...s,
         inputTimezone: inputTimezone || timezone,
       })),
@@ -66,53 +92,88 @@ const AddStudent = () => {
     addStudent(student);
     const classes = generateClasses(student);
     addClasses(classes);
+
+    setSubmitting(false);
+    toast.success('Student added successfully.');
     navigate('/');
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </button>
+      <AppHeader
+        title="Add Student"
+        subtitle="Create a student profile and generate their class schedule"
+        showAddStudent={false}
+        showProfile={true}
+        backLabel="Back to Dashboard"
+        backTo="/"
+      />
 
-        <div className="animate-fade-in-up">
-          <h1 className="text-3xl font-bold mb-2 text-balance">Register New Student</h1>
-          <p className="text-muted-foreground mb-8">Add a student and set up their class schedule.</p>
+      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+        <section className="rounded-3xl border bg-card p-6 shadow-sm">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold">Student information</h2>
+            <p className="text-sm text-muted-foreground">
+              Add the student’s basic details and teaching preferences.
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Info */}
-            <div className="card-elevated p-6 space-y-4">
-              <h2 className="text-lg font-semibold">Student Information</h2>
-              
+            <div className="rounded-2xl border bg-background/50 p-5 space-y-4">
+              <h3 className="font-medium">Basic details</h3>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Bhomik" required />
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Aarav"
+                    className="h-12 rounded-xl"
+                    required
+                  />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="age">Age</Label>
-                  <Input id="age" type="number" min="3" max="99" value={age} onChange={e => setAge(e.target.value)} placeholder="e.g. 7" required />
+                  <Input
+                    id="age"
+                    type="number"
+                    min="3"
+                    max="99"
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                    placeholder="e.g. 10"
+                    className="h-12 rounded-xl"
+                    required
+                  />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="subject">Subject</Label>
                   {profile && profile.subjects.length > 0 ? (
                     <Select value={subject} onValueChange={setSubject}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-12 rounded-xl">
                         <SelectValue placeholder="Select subject" />
                       </SelectTrigger>
                       <SelectContent>
-                        {profile.subjects.map(s => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        {profile.subjects.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Chess" required />
+                    <Input
+                      id="subject"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="e.g. Chess"
+                      className="h-12 rounded-xl"
+                      required
+                    />
                   )}
                 </div>
               </div>
@@ -120,17 +181,27 @@ const AddStudent = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="country">Country</Label>
-                  <Input id="country" value={country} onChange={e => setCountry(e.target.value)} placeholder="e.g. UAE" required />
+                  <Input
+                    id="country"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="e.g. UAE"
+                    className="h-12 rounded-xl"
+                    required
+                  />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="timezone">Student's Timezone</Label>
+                  <Label htmlFor="timezone">Student Timezone</Label>
                   <Select value={timezone} onValueChange={setTimezone} required>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 rounded-xl">
                       <SelectValue placeholder="Select timezone" />
                     </SelectTrigger>
                     <SelectContent>
-                      {COMMON_TIMEZONES.map(tz => (
-                        <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                      {COMMON_TIMEZONES.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -138,92 +209,156 @@ const AddStudent = () => {
               </div>
             </div>
 
-            {/* Class Details */}
-            <div className="card-elevated p-6 space-y-4" style={{ animationDelay: '80ms' }}>
-              <h2 className="text-lg font-semibold">Class Details</h2>
-              
+            <div className="rounded-2xl border bg-background/50 p-5 space-y-4">
+              <h3 className="font-medium">Class plan</h3>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="totalClasses">Total Classes</Label>
-                  <Input id="totalClasses" type="number" min="1" value={totalClasses} onChange={e => setTotalClasses(e.target.value)} placeholder="e.g. 24" required />
+                  <Input
+                    id="totalClasses"
+                    type="number"
+                    min="1"
+                    value={totalClasses}
+                    onChange={(e) => setTotalClasses(e.target.value)}
+                    placeholder="e.g. 24"
+                    className="h-12 rounded-xl"
+                    required
+                  />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="perWeek">Classes per Week</Label>
                   <Select value={classesPerWeek} onValueChange={setClassesPerWeek}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 rounded-xl">
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      {[1, 2, 3, 4].map(n => (
-                        <SelectItem key={n} value={String(n)}>{n}x per week</SelectItem>
+                      {[1, 2, 3, 4].map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n}x per week
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="startDate">Start Date</Label>
-                  <Input id="startDate" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required />
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="h-12 rounded-xl"
+                    required
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Schedule */}
-            <div className="card-elevated p-6 space-y-4" style={{ animationDelay: '160ms' }}>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Weekly Schedule</h2>
-                <Button type="button" variant="outline" size="sm" onClick={addSlot}>
-                  <Plus className="w-4 h-4 mr-1" /> Add Slot
+            <div className="rounded-2xl border bg-background/50 p-5 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-medium">Weekly schedule</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Add one slot per class each week. Keep this equal to “Classes per Week”.
+                  </p>
+                </div>
+
+                <Button type="button" variant="outline" size="sm" onClick={addSlot} className="rounded-xl">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Slot
                 </Button>
               </div>
 
-              <div className="space-y-2 mb-4">
-                <Label>I'm entering times in</Label>
+              <div className="space-y-2 mb-2">
+                <Label>I’m entering times in</Label>
                 <Select value={inputTimezone} onValueChange={setInputTimezone}>
-                  <SelectTrigger className="max-w-sm">
+                  <SelectTrigger className="max-w-sm h-12 rounded-xl">
                     <SelectValue placeholder="Select input timezone" />
                   </SelectTrigger>
                   <SelectContent>
-                    {COMMON_TIMEZONES.map(tz => (
-                      <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                    {COMMON_TIMEZONES.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {scheduleSlots.map((slot, index) => (
-                <div key={index} className="flex items-end gap-3">
-                  <div className="flex-1 space-y-2">
-                    <Label>Day</Label>
-                    <Select value={slot.day} onValueChange={(v) => updateSlot(index, 'day', v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS_OF_WEEK.map(day => (
-                          <SelectItem key={day} value={day} className="capitalize">{day}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+              <div className="space-y-3">
+                {scheduleSlots.map((slot, index) => (
+                  <div
+                    key={index}
+                    className="rounded-2xl border bg-card px-4 py-4 flex flex-col sm:flex-row sm:items-end gap-3"
+                  >
+                    <div className="flex-1 space-y-2">
+                      <Label>Day</Label>
+                      <Select value={slot.day} onValueChange={(v) => updateSlot(index, 'day', v)}>
+                        <SelectTrigger className="h-12 rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DAYS_OF_WEEK.map((day) => (
+                            <SelectItem key={day} value={day} className="capitalize">
+                              {day}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex-1 space-y-2">
+                      <Label>Time</Label>
+                      <Input
+                        type="time"
+                        value={slot.time}
+                        onChange={(e) => updateSlot(index, 'time', e.target.value)}
+                        className="h-12 rounded-xl"
+                      />
+                    </div>
+
+                    {scheduleSlots.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeSlot(index)}
+                        className="text-destructive hover:text-destructive rounded-xl"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
-                  <div className="flex-1 space-y-2">
-                    <Label>Time</Label>
-                    <Input type="time" value={slot.time} onChange={e => updateSlot(index, 'time', e.target.value)} />
-                  </div>
-                  {scheduleSlots.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeSlot(index)} className="text-destructive hover:text-destructive">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            <Button type="submit" size="lg" className="w-full active:scale-[0.98] transition-transform">
-              Register Student & Generate Schedule
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                type="submit"
+                size="lg"
+                className="rounded-xl w-full sm:w-auto active:scale-[0.98] transition-transform"
+                disabled={submitting}
+              >
+                {submitting ? 'Creating...' : 'Register Student & Generate Schedule'}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="rounded-xl w-full sm:w-auto"
+                onClick={() => navigate('/')}
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 };
