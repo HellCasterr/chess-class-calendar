@@ -13,8 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Save, UserCircle2, Lock, Clock3, X } from 'lucide-react';
+import { Save, Lock, Clock3, X } from 'lucide-react';
 import { toast } from 'sonner';
+import AppHeader from '@/components/AppHeader';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -155,26 +156,14 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-sm shrink-0">
-              <UserCircle2 className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Coach Profile</h1>
-              <p className="text-xs text-muted-foreground">
-                Manage your personal details and account settings
-              </p>
-            </div>
-          </div>
-
-          <Button variant="outline" onClick={() => navigate('/')} className="rounded-xl">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </div>
-      </header>
+      <AppHeader
+        title="Coach Profile"
+        subtitle="Manage your personal details and account settings"
+        showAddStudent={false}
+        showProfile={false}
+        backLabel="Back to Dashboard"
+        backTo="/"
+      />
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <section className="rounded-3xl border bg-card p-6 shadow-sm">
@@ -262,11 +251,7 @@ const Profile = () => {
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="rounded-xl"
-              disabled={savingProfile}
-            >
+            <Button type="submit" className="rounded-xl" disabled={savingProfile}>
               <Save className="w-4 h-4 mr-2" />
               {savingProfile ? 'Saving...' : 'Save profile'}
             </Button>
@@ -308,12 +293,7 @@ const Profile = () => {
               />
             </div>
 
-            <Button
-              type="submit"
-              variant="outline"
-              className="rounded-xl"
-              disabled={savingPassword}
-            >
+            <Button type="submit" variant="outline" className="rounded-xl" disabled={savingPassword}>
               <Lock className="w-4 h-4 mr-2" />
               {savingPassword ? 'Updating...' : 'Update password'}
             </Button>
