@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getStudents, getClasses } from '@/lib/store';
 import { formatTimeDisplay, formatDateDisplay } from '@/lib/scheduler';
@@ -14,6 +14,7 @@ import {
   LogOut,
   ArrowRight,
   Sparkles,
+  UserCircle2,
 } from 'lucide-react';
 
 const Index = () => {
@@ -22,6 +23,38 @@ const Index = () => {
 
   const students = useMemo(() => getStudents(), []);
   const allClasses = useMemo(() => getClasses(), []);
+
+  const coachTimezone = profile?.timezone || 'Asia/Kolkata';
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const formattedCoachDate = useMemo(() => {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: coachTimezone,
+    }).format(now);
+  }, [now, coachTimezone]);
+
+  const formattedCoachTime = useMemo(() => {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+      timeZone: coachTimezone,
+      timeZoneName: 'short',
+    }).format(now);
+  }, [now, coachTimezone]);
 
   const getClassDateTime = (cls: { scheduledDate: string; scheduledTime: string }) => {
     return new Date(`${cls.scheduledDate}T${cls.scheduledTime}:00`);
@@ -88,15 +121,33 @@ const Index = () => {
             <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-sm shrink-0">
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
+
             <div className="min-w-0">
               <h1 className="text-xl font-bold truncate">Class Planner</h1>
               <p className="text-xs text-muted-foreground truncate">
-                {greetingName} · {subjectLine}
+                {subjectLine}
               </p>
+              <div className="mt-1 space-y-0.5">
+                <p className="text-xs text-muted-foreground truncate">
+                  <span className="font-medium text-foreground">Coach Name:</span> {greetingName}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {formattedCoachDate} · {formattedCoachTime} · {coachTimezone}
+                </p>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/profile')}
+              className="rounded-xl"
+            >
+              <UserCircle2 className="w-4 h-4 mr-2" />
+              Profile
+            </Button>
+
             <Button
               onClick={() => navigate('/add-student')}
               className="active:scale-[0.98] transition-transform rounded-xl"
@@ -104,7 +155,14 @@ const Index = () => {
               <Plus className="w-4 h-4 mr-2" />
               Add Student
             </Button>
-            <Button variant="ghost" size="icon" onClick={signOut} title="Sign out" className="rounded-xl">
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              title="Sign out"
+              className="rounded-xl"
+            >
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
