@@ -4,40 +4,127 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import Index from "./pages/Index.tsx";
-import AddStudent from "./pages/AddStudent.tsx";
-import StudentDetail from "./pages/StudentDetail.tsx";
-import Auth from "./pages/Auth.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import Index from "./pages/Index";
+import AddStudent from "./pages/AddStudent";
+import StudentDetail from "./pages/StudentDetail";
+import Auth from "./pages/Auth";
+import Register from "./pages/Register";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading, profile } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
-  if (!user) return <Navigate to="/auth" replace />;
-  if (!profile) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading profile...</div>;
+const FullScreenMessage = ({ message }: { message: string }) => (
+  <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+    {message}
+  </div>
+);
+
+const RequireAuth = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <FullScreenMessage message="Loading..." />;
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
   return <>{children}</>;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/add-student" element={<ProtectedRoute><AddStudent /></ProtectedRoute>} />
-            <Route path="/student/:id" element={<ProtectedRoute><StudentDetail /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+const RequireProfile = ({ children }: { children: React.ReactNode }) => {
+  const { user, profile, profileLoaded, loading } = useAuth();
+
+  if (loading || !profileLoaded) {
+    return <FullScreenMessage message="Loading profile..." />;
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!profile) {
+    return <Navigate to="/register" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const RegisterRoute = () => {
+  const { user, profile, profileLoaded, loading } = useAuth();
+
+  if (loading || !profileLoaded) {
+    return <FullScreenMessage message="Loading..." />;
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (profile) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Register />;
+};
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/auth" element={<Auth />} />
+    <Route path="/register" element={<RegisterRoute />} />
+
+    <Route
+      path="/"
+      element={
+        <RequireAuth>
+          <RequireProfile>
+            <Index />
+          </RequireProfile>
+        </RequireAuth>
+      }
+    />
+
+    <Route
+      path="/add-student"
+      element={
+        <RequireAuth>
+          <RequireProfile>
+            <AddStudent />
+          </RequireProfile>
+        </RequireAuth>
+      }
+    />
+
+    <Route
+      path="/student/:id"
+      element={
+        <RequireAuth>
+          <RequireProfile>
+            <StudentDetail />
+          </RequireProfile>
+        </RequireAuth>
+      }
+    />
+
+    <Route path="*" element={<NotFound />} />
+  </Routes>
 );
+
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
