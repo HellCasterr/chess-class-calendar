@@ -3,9 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getStudents, getClasses } from '@/lib/store';
 import { formatTimeDisplay, formatDateDisplay } from '@/lib/scheduler';
 import { COMMON_TIMEZONES } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 import CalendarView from '@/components/CalendarView';
 import { Button } from '@/components/ui/button';
-import { Plus, Users, Calendar, Clock, BookOpen } from 'lucide-react';
+import { Plus, Users, Calendar, Clock, BookOpen, LogOut } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
