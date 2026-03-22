@@ -62,7 +62,7 @@ const Auth = () => {
             <BookOpen className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Class Scheduler</h1>
+            <h1 className="text-3xl font-bold">Coach Login</h1>
           </div>
         </div>
 
@@ -92,7 +92,9 @@ const Auth = () => {
               {sending ? "Sending..." : "Send magic link"}
             </Button>
           </form>
-
+<div className="mt-6 text-center text-xs text-muted-foreground">
+  Made by Bhomik
+</div>
           {emailSent && (
             <div className="mt-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
               Check your inbox and click the magic link to continue.
