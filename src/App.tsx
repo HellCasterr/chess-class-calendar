@@ -10,8 +10,8 @@ import StudentDetail from "./pages/StudentDetail";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Register from "./pages/Register";
-import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +74,17 @@ const AppRoutes = () => (
     />
 
     <Route
+      path="/profile"
+      element={
+        <RequireAuth>
+          <RequireProfile>
+            <Profile />
+          </RequireProfile>
+        </RequireAuth>
+      }
+    />
+
+    <Route
       path="/add-student"
       element={
         <RequireAuth>
@@ -83,16 +94,6 @@ const AppRoutes = () => (
         </RequireAuth>
       }
     />
-    <Route
-  path="/profile"
-  element={
-    <RequireAuth>
-      <RequireProfile>
-        <Profile />
-      </RequireProfile>
-    </RequireAuth>
-  }
-/>
 
     <Route
       path="/student/:id"
@@ -105,7 +106,8 @@ const AppRoutes = () => (
       }
     />
 
-    <Route path="*" element={<Navigate to="/login" replace />} />
+    <Route path="/auth" element={<Navigate to="/login" replace />} />
+    <Route path="*" element={<NotFound />} />
   </Routes>
 );
 
