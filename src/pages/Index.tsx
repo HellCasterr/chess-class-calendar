@@ -13,14 +13,15 @@ const Index = () => {
   const allClasses = useMemo(() => getClasses(), []);
   
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayClasses = allClasses.filter(c => c.scheduledDate === todayStr && c.status !== 'completed');
+  const todayClasses = allClasses.filter(c => c.scheduledDate === todayStr && c.status !== 'completed' && c.status !== 'cancelled');
   const upcomingClasses = allClasses
-    .filter(c => c.status !== 'completed')
+    .filter(c => c.status !== 'completed' && c.status !== 'cancelled')
     .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate))
     .slice(0, 5);
 
   const completedCount = allClasses.filter(c => c.status === 'completed').length;
-  const upcomingCount = allClasses.filter(c => c.status !== 'completed').length;
+  const cancelledCount = allClasses.filter(c => c.status === 'cancelled').length;
+  const upcomingCount = allClasses.filter(c => c.status !== 'completed' && c.status !== 'cancelled').length;
 
   const studentMap = useMemo(() => {
     const map: Record<string, string> = {};

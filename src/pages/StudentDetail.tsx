@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Calendar, Clock, MapPin, User, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { ArrowLeft, Calendar, Clock, MapPin, User, Trash2, XCircle, RotateCcw } from 'lucide-react';
 
 const StudentDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,7 +22,8 @@ const StudentDetail = () => {
   const classes = useMemo(() => id ? getClassesForStudent(id) : [], [id, refreshKey]);
 
   const completedClasses = classes.filter(c => c.status === 'completed');
-  const upcomingClasses = classes.filter(c => c.status !== 'completed');
+  const cancelledClasses = classes.filter(c => c.status === 'cancelled');
+  const upcomingClasses = classes.filter(c => c.status !== 'completed' && c.status !== 'cancelled');
 
   if (!student) {
     return (
@@ -32,6 +34,7 @@ const StudentDetail = () => {
   }
 
   const tzLabel = COMMON_TIMEZONES.find(t => t.value === student.timezone)?.label || student.timezone;
+  const classesRemaining = student.totalClasses - completedClasses.length;
 
   const handleReschedule = () => {
     if (!rescheduleClass || !newDate || !newTime) return;
@@ -50,11 +53,21 @@ const StudentDetail = () => {
     setRefreshKey(k => k + 1);
   };
 
+  const handleMarkCancelled = (cls: ChessClass) => {
+    const updated: ChessClass = { ...cls, status: 'cancelled' };
+    updateClass(updated);
+    setRefreshKey(k => k + 1);
+  };
+
+  const handleRestoreCompleted = (cls: ChessClass) => {
+    const updated: ChessClass = { ...cls, status: 'completed' };
+    updateClass(updated);
+    setRefreshKey(k => k + 1);
+  };
+
   const handleDelete = () => {
-    if (window.confirm(`Delete ${student.name} and all their classes?`)) {
-      deleteStudent(student.id);
-      navigate('/');
-    }
+    deleteStudent(student.id);
+    navigate('/');
   };
 
   return (
@@ -80,12 +93,26 @@ const StudentDetail = () => {
                   <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {tzLabel}</span>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={handleDelete} className="text-destructive hover:text-destructive">
-                <Trash2 className="w-5 h-5" />
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete {student.name}?</AlertDialogTitle>
+                    <AlertDialogDescription>This will permanently delete this student and all their classes.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mt-6">
               <div className="bg-secondary rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold">{student.totalClasses}</p>
                 <p className="text-xs text-muted-foreground">Total Classes</p>
@@ -95,8 +122,12 @@ const StudentDetail = () => {
                 <p className="text-xs text-muted-foreground">Completed</p>
               </div>
               <div className="bg-secondary rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-primary">{upcomingClasses.length}</p>
-                <p className="text-xs text-muted-foreground">Upcoming</p>
+                <p className="text-2xl font-bold text-primary">{classesRemaining}</p>
+                <p className="text-xs text-muted-foreground">Remaining</p>
+              </div>
+              <div className="bg-secondary rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-destructive">{cancelledClasses.length}</p>
+                <p className="text-xs text-muted-foreground">Cancelled</p>
               </div>
               <div className="bg-secondary rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold">{student.classesPerWeek}x</p>
@@ -176,7 +207,7 @@ const StudentDetail = () => {
           </div>
 
           {/* Completed Classes */}
-          <div>
+          <div className="mb-6">
             <h2 className="text-xl font-semibold mb-4">Completed Classes ({completedClasses.length})</h2>
             {completedClasses.length === 0 ? (
               <div className="card-elevated p-8 text-center text-muted-foreground">
@@ -184,23 +215,66 @@ const StudentDetail = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                {completedClasses.map((cls, i) => (
+                {completedClasses.map((cls) => (
                   <div
                     key={cls.id}
-                    className="card-elevated p-4 flex items-center gap-4 opacity-70"
+                    className="card-elevated p-4 flex items-center justify-between"
                   >
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">{formatDateDisplay(cls.scheduledDate)}</span>
-                    <span className="text-sm font-mono text-muted-foreground">
-                      {formatTimeDisplay(cls.scheduledTime)} IST
-                    </span>
-                    <span className="badge-completed">Done</span>
-                    {cls.isRescheduled && <span className="badge-rescheduled text-xs">Was rescheduled</span>}
+                    <div className="flex items-center gap-4">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-medium">{formatDateDisplay(cls.scheduledDate)}</span>
+                      <span className="text-sm font-mono text-muted-foreground">
+                        {formatTimeDisplay(cls.scheduledTime)} IST
+                      </span>
+                      <span className="badge-completed">Done</span>
+                      {cls.isRescheduled && <span className="badge-rescheduled text-xs">Was rescheduled</span>}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => handleMarkCancelled(cls)}
+                    >
+                      <XCircle className="w-3.5 h-3.5 mr-1" />
+                      Not Conducted
+                    </Button>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
+          {/* Cancelled Classes */}
+          {cancelledClasses.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Cancelled Classes ({cancelledClasses.length})</h2>
+              <div className="space-y-2">
+                {cancelledClasses.map((cls) => (
+                  <div
+                    key={cls.id}
+                    className="card-elevated p-4 flex items-center justify-between opacity-60"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-medium line-through">{formatDateDisplay(cls.scheduledDate)}</span>
+                      <span className="text-sm font-mono text-muted-foreground line-through">
+                        {formatTimeDisplay(cls.scheduledTime)} IST
+                      </span>
+                      <span className="text-xs font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">Cancelled</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRestoreCompleted(cls)}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                      Restore
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

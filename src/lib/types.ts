@@ -26,7 +26,7 @@ export interface ChessClass {
   scheduledDate: string; // ISO date (may differ if rescheduled)
   scheduledTime: string; // HH:mm in teacher's timezone (IST)
   studentTime: string; // HH:mm in student's timezone
-  status: 'completed' | 'upcoming' | 'rescheduled';
+  status: 'completed' | 'upcoming' | 'rescheduled' | 'cancelled';
   isRescheduled: boolean;
 }
 
