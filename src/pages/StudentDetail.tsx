@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getStudents, getClassesForStudent, updateClass, deleteStudent } from '@/lib/store';
+import { getStudents, getClassesForStudent, updateClass, deleteStudent, cancelClassAndGenerateReplacement } from '@/lib/store';
 import { formatTimeDisplay, formatDateDisplay } from '@/lib/scheduler';
 import { COMMON_TIMEZONES, TEACHER_TIMEZONE, ChessClass } from '@/lib/types';
 import { Button } from '@/components/ui/button';
