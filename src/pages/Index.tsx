@@ -146,7 +146,9 @@ const Index = () => {
                           <div>
                             <p className="font-medium">{student.name}</p>
                             <p className="text-xs text-muted-foreground">
+                              {student.subject && <span className="font-medium text-primary">{student.subject} · </span>}
                               {student.country} · Age {student.age}
+                            </p>
                             </p>
                           </div>
                           <div className="text-right">
