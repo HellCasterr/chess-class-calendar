@@ -19,6 +19,7 @@ const AddStudent = () => {
   const [country, setCountry] = useState('');
   const [timezone, setTimezone] = useState('');
   const [totalClasses, setTotalClasses] = useState('');
+  const [subject, setSubject] = useState(profile?.subjects?.[0] || '');
   const [classesPerWeek, setClassesPerWeek] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [inputTimezone, setInputTimezone] = useState('');
