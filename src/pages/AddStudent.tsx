@@ -13,6 +13,7 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 
 const AddStudent = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [country, setCountry] = useState('');
