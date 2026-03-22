@@ -10,6 +10,7 @@ import { Plus, Users, Calendar, Clock, BookOpen, LogOut } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
   const students = useMemo(() => getStudents(), []);
   const allClasses = useMemo(() => getClasses(), []);
   
