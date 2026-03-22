@@ -1,14 +1,45 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getStudents, getClassesForStudent, updateClass, deleteStudent, cancelClassAndGenerateReplacement } from '@/lib/store';
+import {
+  getStudents,
+  getClassesForStudent,
+  updateClass,
+  deleteStudent,
+  cancelClassAndGenerateReplacement,
+} from '@/lib/store';
 import { formatTimeDisplay, formatDateDisplay } from '@/lib/scheduler';
-import { COMMON_TIMEZONES, TEACHER_TIMEZONE, ChessClass } from '@/lib/types';
+import { COMMON_TIMEZONES, ChessClass } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Calendar, Clock, MapPin, User, Trash2, XCircle, RotateCcw } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  MapPin,
+  User,
+  Trash2,
+  XCircle,
+  RotateCcw,
+} from 'lucide-react';
 
 const StudentDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,12 +49,34 @@ const StudentDetail = () => {
   const [newTime, setNewTime] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const student = useMemo(() => getStudents().find(s => s.id === id), [id, refreshKey]);
-  const classes = useMemo(() => id ? getClassesForStudent(id) : [], [id, refreshKey]);
+  const student = useMemo(() => getStudents().find((s) => s.id === id), [id, refreshKey]);
+  const classes = useMemo(() => (id ? getClassesForStudent(id) : []), [id, refreshKey]);
 
-  const completedClasses = classes.filter(c => c.status === 'completed');
-  const cancelledClasses = classes.filter(c => c.status === 'cancelled');
-  const upcomingClasses = classes.filter(c => c.status !== 'completed' && c.status !== 'cancelled');
+  const getClassDateTime = (cls: ChessClass) => {
+    return new Date(`${cls.scheduledDate}T${cls.scheduledTime}:00`);
+  };
+
+  const isClassCompletedByTime = (cls: ChessClass) => {
+    if (cls.status === 'cancelled') return false;
+    const classDateTime = getClassDateTime(cls);
+    return !Number.isNaN(classDateTime.getTime()) && classDateTime.getTime() < Date.now();
+  };
+
+  const cancelledClasses = classes.filter((c) => c.status === 'cancelled');
+
+  const completedClasses = classes
+    .filter((c) => {
+      if (c.status === 'cancelled') return false;
+      return isClassCompletedByTime(c);
+    })
+    .sort((a, b) => getClassDateTime(b).getTime() - getClassDateTime(a).getTime());
+
+  const upcomingClasses = classes
+    .filter((c) => {
+      if (c.status === 'cancelled') return false;
+      return !isClassCompletedByTime(c);
+    })
+    .sort((a, b) => getClassDateTime(a).getTime() - getClassDateTime(b).getTime());
 
   if (!student) {
     return (
@@ -33,35 +86,49 @@ const StudentDetail = () => {
     );
   }
 
-  const tzLabel = COMMON_TIMEZONES.find(t => t.value === student.timezone)?.label || student.timezone;
-  const classesRemaining = student.totalClasses - completedClasses.length;
+  const tzLabel =
+    COMMON_TIMEZONES.find((t) => t.value === student.timezone)?.label || student.timezone;
+  const classesRemaining = Math.max(student.totalClasses - completedClasses.length, 0);
 
   const handleReschedule = () => {
     if (!rescheduleClass || !newDate || !newTime) return;
-    
+
+    const updatedDateTime = new Date(`${newDate}T${newTime}:00`);
+    const isPast =
+      !Number.isNaN(updatedDateTime.getTime()) && updatedDateTime.getTime() < Date.now();
+
     const updated: ChessClass = {
       ...rescheduleClass,
       scheduledDate: newDate,
       scheduledTime: newTime,
-      status: 'rescheduled',
+      status: isPast ? 'completed' : 'rescheduled',
       isRescheduled: true,
     };
+
     updateClass(updated);
     setRescheduleClass(null);
     setNewDate('');
     setNewTime('');
-    setRefreshKey(k => k + 1);
+    setRefreshKey((k) => k + 1);
   };
 
   const handleMarkCancelled = (cls: ChessClass) => {
     cancelClassAndGenerateReplacement(cls);
-    setRefreshKey(k => k + 1);
+    setRefreshKey((k) => k + 1);
   };
 
   const handleRestoreCompleted = (cls: ChessClass) => {
-    const updated: ChessClass = { ...cls, status: 'completed' };
+    const restoredDateTime = getClassDateTime(cls);
+    const isPast =
+      !Number.isNaN(restoredDateTime.getTime()) && restoredDateTime.getTime() < Date.now();
+
+    const updated: ChessClass = {
+      ...cls,
+      status: isPast ? 'completed' : cls.isRescheduled ? 'rescheduled' : 'upcoming',
+    };
+
     updateClass(updated);
-    setRefreshKey(k => k + 1);
+    setRefreshKey((k) => k + 1);
   };
 
   const handleDelete = () => {
@@ -81,17 +148,23 @@ const StudentDetail = () => {
         </button>
 
         <div className="animate-fade-in-up">
-          {/* Student Info */}
           <div className="card-elevated p-6 mb-6">
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="text-3xl font-bold mb-1">{student.name}</h1>
                 <div className="flex flex-wrap gap-4 text-muted-foreground mt-2">
-                  <span className="flex items-center gap-1.5"><User className="w-4 h-4" /> Age {student.age}</span>
-                  <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {student.country}</span>
-                  <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {tzLabel}</span>
+                  <span className="flex items-center gap-1.5">
+                    <User className="w-4 h-4" /> Age {student.age}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4" /> {student.country}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" /> {tzLabel}
+                  </span>
                 </div>
               </div>
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
@@ -101,11 +174,18 @@ const StudentDetail = () => {
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete {student.name}?</AlertDialogTitle>
-                    <AlertDialogDescription>This will permanently delete this student and all their classes.</AlertDialogDescription>
+                    <AlertDialogDescription>
+                      This will permanently delete this student and all their classes.
+                    </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -135,7 +215,6 @@ const StudentDetail = () => {
             </div>
           </div>
 
-          {/* Upcoming Classes */}
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-4">Upcoming Classes ({upcomingClasses.length})</h2>
             {upcomingClasses.length === 0 ? (
@@ -158,7 +237,9 @@ const StudentDetail = () => {
                       <div className="text-sm text-muted-foreground">
                         <span className="font-mono">{formatTimeDisplay(cls.scheduledTime)}</span>
                         <span className="mx-1">IST</span>
-                        <span className="text-xs">({formatTimeDisplay(cls.studentTime)} student time)</span>
+                        <span className="text-xs">
+                          ({formatTimeDisplay(cls.studentTime)} student time)
+                        </span>
                       </div>
                       {cls.isRescheduled && <span className="badge-rescheduled">Rescheduled</span>}
                     </div>
@@ -183,15 +264,24 @@ const StudentDetail = () => {
                         </DialogHeader>
                         <div className="space-y-4 pt-4">
                           <p className="text-sm text-muted-foreground">
-                            Original: {formatDateDisplay(cls.originalDate)} at {formatTimeDisplay(cls.scheduledTime)} IST
+                            Original: {formatDateDisplay(cls.originalDate)} at{' '}
+                            {formatTimeDisplay(cls.scheduledTime)} IST
                           </p>
                           <div className="space-y-2">
                             <Label>New Date</Label>
-                            <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
+                            <Input
+                              type="date"
+                              value={newDate}
+                              onChange={(e) => setNewDate(e.target.value)}
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label>New Time (IST)</Label>
-                            <Input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} />
+                            <Input
+                              type="time"
+                              value={newTime}
+                              onChange={(e) => setNewTime(e.target.value)}
+                            />
                           </div>
                           <Button onClick={handleReschedule} className="w-full">
                             Confirm Reschedule
@@ -205,7 +295,6 @@ const StudentDetail = () => {
             )}
           </div>
 
-          {/* Completed Classes */}
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-4">Completed Classes ({completedClasses.length})</h2>
             {completedClasses.length === 0 ? (
@@ -215,10 +304,7 @@ const StudentDetail = () => {
             ) : (
               <div className="space-y-2">
                 {completedClasses.map((cls) => (
-                  <div
-                    key={cls.id}
-                    className="card-elevated p-4 flex items-center justify-between"
-                  >
+                  <div key={cls.id} className="card-elevated p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">{formatDateDisplay(cls.scheduledDate)}</span>
@@ -226,7 +312,9 @@ const StudentDetail = () => {
                         {formatTimeDisplay(cls.scheduledTime)} IST
                       </span>
                       <span className="badge-completed">Done</span>
-                      {cls.isRescheduled && <span className="badge-rescheduled text-xs">Was rescheduled</span>}
+                      {cls.isRescheduled && (
+                        <span className="badge-rescheduled text-xs">Was rescheduled</span>
+                      )}
                     </div>
                     <Button
                       variant="outline"
@@ -243,7 +331,6 @@ const StudentDetail = () => {
             )}
           </div>
 
-          {/* Cancelled Classes */}
           {cancelledClasses.length > 0 && (
             <div>
               <h2 className="text-xl font-semibold mb-4">Cancelled Classes ({cancelledClasses.length})</h2>
@@ -255,17 +342,17 @@ const StudentDetail = () => {
                   >
                     <div className="flex items-center gap-4">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium line-through">{formatDateDisplay(cls.scheduledDate)}</span>
+                      <span className="font-medium line-through">
+                        {formatDateDisplay(cls.scheduledDate)}
+                      </span>
                       <span className="text-sm font-mono text-muted-foreground line-through">
                         {formatTimeDisplay(cls.scheduledTime)} IST
                       </span>
-                      <span className="text-xs font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">Cancelled</span>
+                      <span className="text-xs font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">
+                        Cancelled
+                      </span>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRestoreCompleted(cls)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleRestoreCompleted(cls)}>
                       <RotateCcw className="w-3.5 h-3.5 mr-1" />
                       Restore
                     </Button>
