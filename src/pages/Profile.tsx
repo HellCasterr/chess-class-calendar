@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { COMMON_TIMEZONES } from '@/lib/types';
+import AppShell from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,10 +16,8 @@ import {
 } from '@/components/ui/select';
 import { Save, Lock, Clock3, X } from 'lucide-react';
 import { toast } from 'sonner';
-import AppHeader from '@/components/AppHeader';
 
 const Profile = () => {
-  const navigate = useNavigate();
   const { user, profile, loading, profileLoaded, refreshProfile } = useAuth();
 
   const [coachName, setCoachName] = useState('');
@@ -155,152 +154,154 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader
-        title="Coach Profile"
-        subtitle="Manage your personal details and account settings"
-        showAddStudent={false}
-        showProfile={false}
-        backLabel="Back to Dashboard"
-        backTo="/"
-      />
-
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        <section className="rounded-3xl border bg-card p-6 shadow-sm">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold">Personal information</h2>
+    <AppShell>
+      <div className="min-h-screen bg-background">
+        <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <h1 className="text-xl font-bold">Coach Profile</h1>
             <p className="text-sm text-muted-foreground">
-              Update how your coaching profile appears across the app.
+              Manage your personal details and account settings
             </p>
           </div>
+        </header>
 
-          <form onSubmit={handleSaveProfile} className="space-y-5">
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input value={user?.email ?? ''} disabled className="h-12 rounded-xl bg-muted/60" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="coach-name">Coach Name</Label>
-              <Input
-                id="coach-name"
-                value={coachName}
-                onChange={(e) => setCoachName(e.target.value)}
-                placeholder="e.g. Bhomik"
-                className="h-12 rounded-xl"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Your Timezone</Label>
-              <Select value={timezone} onValueChange={setTimezone}>
-                <SelectTrigger className="h-12 rounded-xl">
-                  <SelectValue placeholder="Select timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COMMON_TIMEZONES.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground flex items-center gap-2">
-                <Clock3 className="w-3.5 h-3.5" />
-                Current time in this timezone: {currentTimePreview}
+        <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+          <section className="rounded-3xl border bg-card p-6 shadow-sm">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold">Personal information</h2>
+              <p className="text-sm text-muted-foreground">
+                Update how your coaching profile appears across the app.
               </p>
             </div>
 
-            <div className="space-y-3">
-              <Label>Subjects You Teach</Label>
-
-              <div className="flex flex-wrap gap-2">
-                {subjects.map((subject) => (
-                  <span
-                    key={subject}
-                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
-                  >
-                    {subject}
-                    <button
-                      type="button"
-                      onClick={() => removeSubject(subject)}
-                      className="opacity-70 hover:opacity-100"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </span>
-                ))}
+            <form onSubmit={handleSaveProfile} className="space-y-5">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input value={user?.email ?? ''} disabled className="h-12 rounded-xl bg-muted/60" />
               </div>
 
-              <div className="flex gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="coach-name">Coach Name</Label>
                 <Input
-                  value={subjectInput}
-                  onChange={(e) => setSubjectInput(e.target.value)}
-                  placeholder="Add a subject"
+                  id="coach-name"
+                  value={coachName}
+                  onChange={(e) => setCoachName(e.target.value)}
+                  placeholder="e.g. Bhomik"
                   className="h-12 rounded-xl"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addSubject();
-                    }
-                  }}
                 />
-                <Button type="button" variant="outline" onClick={addSubject} className="h-12 rounded-xl">
-                  Add
-                </Button>
               </div>
+
+              <div className="space-y-2">
+                <Label>Your Timezone</Label>
+                <Select value={timezone} onValueChange={setTimezone}>
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COMMON_TIMEZONES.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                  <Clock3 className="w-3.5 h-3.5" />
+                  Current time in this timezone: {currentTimePreview}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Subjects You Teach</Label>
+
+                <div className="flex flex-wrap gap-2">
+                  {subjects.map((subject) => (
+                    <span
+                      key={subject}
+                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
+                    >
+                      {subject}
+                      <button
+                        type="button"
+                        onClick={() => removeSubject(subject)}
+                        className="opacity-70 hover:opacity-100"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <Input
+                    value={subjectInput}
+                    onChange={(e) => setSubjectInput(e.target.value)}
+                    placeholder="Add a subject"
+                    className="h-12 rounded-xl"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addSubject();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={addSubject} className="h-12 rounded-xl">
+                    Add
+                  </Button>
+                </div>
+              </div>
+
+              <Button type="submit" className="rounded-xl" disabled={savingProfile}>
+                <Save className="w-4 h-4 mr-2" />
+                {savingProfile ? 'Saving...' : 'Save profile'}
+              </Button>
+            </form>
+          </section>
+
+          <section className="rounded-3xl border bg-card p-6 shadow-sm">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold">Security</h2>
+              <p className="text-sm text-muted-foreground">
+                Change your password for future email/password logins.
+              </p>
             </div>
 
-            <Button type="submit" className="rounded-xl" disabled={savingProfile}>
-              <Save className="w-4 h-4 mr-2" />
-              {savingProfile ? 'Saving...' : 'Save profile'}
-            </Button>
-          </form>
-        </section>
+            <form onSubmit={handleChangePassword} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  className="h-12 rounded-xl"
+                />
+              </div>
 
-        <section className="rounded-3xl border bg-card p-6 shadow-sm">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold">Security</h2>
-            <p className="text-sm text-muted-foreground">
-              Change your password for future email/password logins.
-            </p>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password"
+                  className="h-12 rounded-xl"
+                />
+              </div>
 
-          <form onSubmit={handleChangePassword} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
-              <Input
-                id="new-password"
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
-                className="h-12 rounded-xl"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
-                className="h-12 rounded-xl"
-              />
-            </div>
-
-            <Button type="submit" variant="outline" className="rounded-xl" disabled={savingPassword}>
-              <Lock className="w-4 h-4 mr-2" />
-              {savingPassword ? 'Updating...' : 'Update password'}
-            </Button>
-          </form>
-        </section>
-      </main>
-    </div>
+              <Button type="submit" variant="outline" className="rounded-xl" disabled={savingPassword}>
+                <Lock className="w-4 h-4 mr-2" />
+                {savingPassword ? 'Updating...' : 'Update password'}
+              </Button>
+            </form>
+          </section>
+        </main>
+      </div>
+    </AppShell>
   );
 };
 
