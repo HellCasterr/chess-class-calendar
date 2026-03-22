@@ -13,21 +13,21 @@ const Index = () => {
   const { profile, signOut } = useAuth();
   const students = useMemo(() => getStudents(), []);
   const allClasses = useMemo(() => getClasses(), []);
-  
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayClasses = allClasses.filter(c => c.scheduledDate === todayStr && c.status !== 'completed' && c.status !== 'cancelled');
-  const upcomingClasses = allClasses
-    .filter(c => c.status !== 'completed' && c.status !== 'cancelled')
-    .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate))
-    .slice(0, 5);
 
-  const completedCount = allClasses.filter(c => c.status === 'completed').length;
-  const cancelledCount = allClasses.filter(c => c.status === 'cancelled').length;
-  const upcomingCount = allClasses.filter(c => c.status !== 'completed' && c.status !== 'cancelled').length;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayClasses = allClasses.filter((c) => c.scheduledDate === todayStr && c.status !== 'completed' && c.status !== 'cancelled');
+  const upcomingClasses = allClasses.
+  filter((c) => c.status !== 'completed' && c.status !== 'cancelled').
+  sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate)).
+  slice(0, 5);
+
+  const completedCount = allClasses.filter((c) => c.status === 'completed').length;
+  const cancelledCount = allClasses.filter((c) => c.status === 'cancelled').length;
+  const upcomingCount = allClasses.filter((c) => c.status !== 'completed' && c.status !== 'cancelled').length;
 
   const studentMap = useMemo(() => {
     const map: Record<string, string> = {};
-    students.forEach(s => { map[s.id] = s.name; });
+    students.forEach((s) => {map[s.id] = s.name;});
     return map;
   }, [students]);
 
@@ -35,7 +35,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between text-lg font-bold text-left text-primary">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-primary-foreground" />
@@ -101,47 +101,47 @@ const Index = () => {
             {/* Today's Classes */}
             <div>
               <h2 className="text-lg font-semibold mb-4">Today's Classes</h2>
-              {todayClasses.length === 0 ? (
-                <div className="card-elevated p-6 text-center text-muted-foreground text-sm">
+              {todayClasses.length === 0 ?
+              <div className="card-elevated p-6 text-center text-muted-foreground text-sm">
                   No classes today
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {todayClasses.map(cls => (
-                    <div key={cls.id} className="card-elevated p-3">
+                </div> :
+
+              <div className="space-y-2">
+                  {todayClasses.map((cls) =>
+                <div key={cls.id} className="card-elevated p-3">
                       <p className="font-medium">{studentMap[cls.studentId]}</p>
                       <p className="text-sm text-muted-foreground font-mono">
                         {formatTimeDisplay(cls.scheduledTime)} IST
                       </p>
                     </div>
-                  ))}
+                )}
                 </div>
-              )}
+              }
             </div>
 
             {/* Students List */}
             <div>
               <h2 className="text-lg font-semibold mb-4">Students</h2>
-              {students.length === 0 ? (
-                <div className="card-elevated p-6 text-center">
+              {students.length === 0 ?
+              <div className="card-elevated p-6 text-center">
                   <p className="text-muted-foreground text-sm mb-3">No students yet</p>
                   <Button variant="outline" size="sm" onClick={() => navigate('/add-student')}>
                     <Plus className="w-4 h-4 mr-1" /> Add First Student
                   </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {students.map(student => {
-                    const studentClasses = allClasses.filter(c => c.studentId === student.id);
-                    const done = studentClasses.filter(c => c.status === 'completed').length;
-                    const tzLabel = COMMON_TIMEZONES.find(t => t.value === student.timezone)?.label?.split('(')[0]?.trim() || student.country;
-                    
-                    return (
-                      <Link
-                        key={student.id}
-                        to={`/student/${student.id}`}
-                        className="card-elevated p-4 block hover:border-primary/30 transition-colors"
-                      >
+                </div> :
+
+              <div className="space-y-2">
+                  {students.map((student) => {
+                  const studentClasses = allClasses.filter((c) => c.studentId === student.id);
+                  const done = studentClasses.filter((c) => c.status === 'completed').length;
+                  const tzLabel = COMMON_TIMEZONES.find((t) => t.value === student.timezone)?.label?.split('(')[0]?.trim() || student.country;
+
+                  return (
+                    <Link
+                      key={student.id}
+                      to={`/student/${student.id}`}
+                      className="card-elevated p-4 block hover:border-primary/30 transition-colors">
+                      
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">{student.name}</p>
@@ -155,17 +155,17 @@ const Index = () => {
                             <p className="text-xs text-muted-foreground">classes</p>
                           </div>
                         </div>
-                      </Link>
-                    );
-                  })}
+                      </Link>);
+
+                })}
                 </div>
-              )}
+              }
             </div>
           </div>
         </div>
       </main>
-    </div>
-  );
+    </div>);
+
 };
 
 export default Index;
