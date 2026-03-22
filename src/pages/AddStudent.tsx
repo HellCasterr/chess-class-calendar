@@ -52,6 +52,7 @@ const AddStudent = () => {
       age: parseInt(age),
       country,
       timezone,
+      subject,
       totalClasses: parseInt(totalClasses),
       classesPerWeek: parseInt(classesPerWeek),
       schedule: scheduleSlots.map(s => ({
