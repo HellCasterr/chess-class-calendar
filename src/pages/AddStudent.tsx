@@ -54,67 +54,72 @@ const AddStudent = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!user) {
-      toast.error('You must be signed in.');
-      return;
-    }
-
-    if (!name.trim() || !age || !country.trim() || !timezone || !totalClasses || !classesPerWeek) {
-      toast.error('Please fill all required fields.');
-      return;
-    }
-
-    if (scheduleSlots.length === 0) {
-      toast.error('Please add at least one schedule slot.');
-      return;
-    }
-
-    if (Number(classesPerWeek) !== scheduleSlots.length) {
-      toast.error('Classes per week should match the number of weekly schedule slots.');
-      return;
-    }
-
-    setSubmitting(true);
-
-   try {
-  const student: Student = {
-    id: crypto.randomUUID(),
-    name: name.trim(),
-    age: parseInt(age, 10),
-    country: country.trim(),
-    timezone,
-    subject: subject.trim(),
-    totalClasses: parseInt(totalClasses, 10),
-    classesPerWeek: parseInt(classesPerWeek, 10),
-    schedule: scheduleSlots.map((s) => ({
-      ...s,
-      inputTimezone: inputTimezone || timezone,
-    })),
-    createdAt: new Date().toISOString(),
-    startDate,
-  };
-
-  await createStudent(user.id, student);
-
-  try {
-    const classes = generateClasses(student);
-    await createClasses(user.id, classes);
-  } catch (classError) {
-    await deleteStudentRecord(user.id, student.id);
-    throw classError;
+  if (!user) {
+    toast.error('You must be signed in.');
+    return;
   }
 
-  toast.success('Student added successfully.');
-  navigate('/');
-} catch (error) {
-  console.error(error);
-  toast.error('Failed to save student.');
-} finally {
-  setSubmitting(false);
-}
-  };
+  if (!name.trim() || !age || !country.trim() || !timezone || !totalClasses || !classesPerWeek) {
+    toast.error('Please fill all required fields.');
+    return;
+  }
+
+  if (scheduleSlots.length === 0) {
+    toast.error('Please add at least one schedule slot.');
+    return;
+  }
+
+  if (Number(classesPerWeek) !== scheduleSlots.length) {
+    toast.error('Classes per week should match the number of weekly schedule slots.');
+    return;
+  }
+
+  setSubmitting(true);
+
+  try {
+    const student: Student = {
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      age: parseInt(age, 10),
+      country: country.trim(),
+      timezone,
+      subject: subject.trim(),
+      totalClasses: parseInt(totalClasses, 10),
+      classesPerWeek: parseInt(classesPerWeek, 10),
+      schedule: scheduleSlots.map((s) => ({
+        ...s,
+        inputTimezone: inputTimezone || timezone,
+      })),
+      createdAt: new Date().toISOString(),
+      startDate,
+    };
+
+    // Generate classes FIRST so we fail before writing student if scheduler throws
+    const classes = generateClasses(student);
+
+    // Then write student
+    await createStudent(user.id, student);
+
+    try {
+      // Then write classes
+      await createClasses(user.id, classes);
+    } catch (classError) {
+      // Roll back student if class insert fails
+      await deleteStudentRecord(user.id, student.id);
+      throw classError;
+    }
+
+    toast.success('Student added successfully.');
+    navigate('/');
+  } catch (error: any) {
+    console.error('ADD STUDENT ERROR:', error);
+    toast.error(error?.message || 'Failed to save student.');
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <AppShell>
