@@ -186,3 +186,19 @@ export async function deleteClassRecord(userId: string, classId: string) {
 
   if (error) throw error;
 }
+
+export async function createSingleClass(userId: string, cls: ChessClass) {
+  const { error } = await supabase.from('classes').insert({
+    id: cls.id,
+    user_id: userId,
+    student_id: cls.studentId,
+    original_date: cls.originalDate,
+    scheduled_date: cls.scheduledDate,
+    scheduled_time: cls.scheduledTime,
+    student_time: cls.studentTime,
+    status: cls.status,
+    is_rescheduled: cls.isRescheduled,
+  });
+
+  if (error) throw error;
+}
