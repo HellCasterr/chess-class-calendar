@@ -1,14 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  getStudents,
-  getClassesForStudent,
-  updateClass,
-  deleteStudent,
-  cancelClassAndGenerateReplacement,
-} from '@/lib/store';
 import { formatTimeDisplay, formatDateDisplay } from '@/lib/scheduler';
-import { COMMON_TIMEZONES, ChessClass } from '@/lib/types';
+import { COMMON_TIMEZONES, ChessClass, Student } from '@/lib/types';
 import AppShell from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,18 +33,53 @@ import {
   RotateCcw,
   GraduationCap,
 } from 'lucide-react';
+import {
+  fetchStudentById,
+  fetchClassesForStudent,
+  updateClassRecord,
+  deleteStudentRecord,
+  createSingleClass,
+} from '@/lib/db';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const StudentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [student, setStudent] = useState<Student | null>(null);
+  const [classes, setClasses] = useState<ChessClass[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   const [rescheduleClass, setRescheduleClass] = useState<ChessClass | null>(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const student = useMemo(() => getStudents().find((s) => s.id === id), [id, refreshKey]);
-  const classes = useMemo(() => (id ? getClassesForStudent(id) : []), [id, refreshKey]);
+  const loadData = async () => {
+    if (!user || !id) return;
+
+    setLoadingData(true);
+
+    try {
+      const [studentData, classesData] = await Promise.all([
+        fetchStudentById(user.id, id),
+        fetchClassesForStudent(user.id, id),
+      ]);
+
+      setStudent(studentData);
+      setClasses(classesData);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to load student details.');
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [user, id]);
 
   const getClassDateTime = (cls: ChessClass) => {
     return new Date(`${cls.scheduledDate}T${cls.scheduledTime}:00`);
@@ -63,21 +91,51 @@ const StudentDetail = () => {
     return !Number.isNaN(classDateTime.getTime()) && classDateTime.getTime() < Date.now();
   };
 
-  const cancelledClasses = classes.filter((c) => c.status === 'cancelled');
+  const cancelledClasses = useMemo(
+    () => classes.filter((c) => c.status === 'cancelled'),
+    [classes]
+  );
 
-  const completedClasses = classes
-    .filter((c) => {
-      if (c.status === 'cancelled') return false;
-      return isClassCompletedByTime(c);
-    })
-    .sort((a, b) => getClassDateTime(b).getTime() - getClassDateTime(a).getTime());
+  const completedClasses = useMemo(
+    () =>
+      classes
+        .filter((c) => {
+          if (c.status === 'cancelled') return false;
+          return isClassCompletedByTime(c);
+        })
+        .sort((a, b) => getClassDateTime(b).getTime() - getClassDateTime(a).getTime()),
+    [classes]
+  );
 
-  const upcomingClasses = classes
-    .filter((c) => {
-      if (c.status === 'cancelled') return false;
-      return !isClassCompletedByTime(c);
-    })
-    .sort((a, b) => getClassDateTime(a).getTime() - getClassDateTime(b).getTime());
+  const upcomingClasses = useMemo(
+    () =>
+      classes
+        .filter((c) => {
+          if (c.status === 'cancelled') return false;
+          return !isClassCompletedByTime(c);
+        })
+        .sort((a, b) => getClassDateTime(a).getTime() - getClassDateTime(b).getTime()),
+    [classes]
+  );
+
+  if (loadingData) {
+    return (
+      <AppShell>
+        <div className="min-h-screen bg-background">
+          <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
+            <div className="max-w-5xl mx-auto px-4 py-4">
+              <h1 className="text-xl font-bold">Student Details</h1>
+              <p className="text-sm text-muted-foreground">Loading student data...</p>
+            </div>
+          </header>
+
+          <div className="max-w-5xl mx-auto px-4 py-16">
+            <p className="text-muted-foreground">Loading student details...</p>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   if (!student) {
     return (
@@ -109,50 +167,99 @@ const StudentDetail = () => {
       : 0;
   const nextClass = upcomingClasses[0] || null;
 
-  const handleReschedule = () => {
-    if (!rescheduleClass || !newDate || !newTime) return;
+  const handleReschedule = async () => {
+    if (!user || !rescheduleClass || !newDate || !newTime) return;
 
-    const updatedDateTime = new Date(`${newDate}T${newTime}:00`);
-    const isPast =
-      !Number.isNaN(updatedDateTime.getTime()) && updatedDateTime.getTime() < Date.now();
+    try {
+      const updatedDateTime = new Date(`${newDate}T${newTime}:00`);
+      const isPast =
+        !Number.isNaN(updatedDateTime.getTime()) && updatedDateTime.getTime() < Date.now();
 
-    const updated: ChessClass = {
-      ...rescheduleClass,
-      scheduledDate: newDate,
-      scheduledTime: newTime,
-      status: isPast ? 'completed' : 'rescheduled',
-      isRescheduled: true,
-    };
+      const updated: ChessClass = {
+        ...rescheduleClass,
+        scheduledDate: newDate,
+        scheduledTime: newTime,
+        status: isPast ? 'completed' : 'rescheduled',
+        isRescheduled: true,
+      };
 
-    updateClass(updated);
-    setRescheduleClass(null);
-    setNewDate('');
-    setNewTime('');
-    setRefreshKey((k) => k + 1);
+      await updateClassRecord(user.id, updated);
+      setRescheduleClass(null);
+      setNewDate('');
+      setNewTime('');
+      toast.success('Class rescheduled.');
+      await loadData();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to reschedule class.');
+    }
   };
 
-  const handleMarkCancelled = (cls: ChessClass) => {
-    cancelClassAndGenerateReplacement(cls);
-    setRefreshKey((k) => k + 1);
+  const handleMarkCancelled = async (cls: ChessClass) => {
+    if (!user) return;
+
+    try {
+      const cancelledClass: ChessClass = {
+        ...cls,
+        status: 'cancelled',
+      };
+
+      await updateClassRecord(user.id, cancelledClass);
+
+      const replacementClass: ChessClass = {
+        id: crypto.randomUUID(),
+        studentId: cls.studentId,
+        originalDate: cls.originalDate,
+        scheduledDate: cls.scheduledDate,
+        scheduledTime: cls.scheduledTime,
+        studentTime: cls.studentTime,
+        status: 'upcoming',
+        isRescheduled: false,
+      };
+
+      await createSingleClass(user.id, replacementClass);
+
+      toast.success('Class marked as not conducted and replacement generated.');
+      await loadData();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to cancel class.');
+    }
   };
 
-  const handleRestoreCompleted = (cls: ChessClass) => {
-    const restoredDateTime = getClassDateTime(cls);
-    const isPast =
-      !Number.isNaN(restoredDateTime.getTime()) && restoredDateTime.getTime() < Date.now();
+  const handleRestoreCompleted = async (cls: ChessClass) => {
+    if (!user) return;
 
-    const updated: ChessClass = {
-      ...cls,
-      status: isPast ? 'completed' : cls.isRescheduled ? 'rescheduled' : 'upcoming',
-    };
+    try {
+      const restoredDateTime = getClassDateTime(cls);
+      const isPast =
+        !Number.isNaN(restoredDateTime.getTime()) && restoredDateTime.getTime() < Date.now();
 
-    updateClass(updated);
-    setRefreshKey((k) => k + 1);
+      const updated: ChessClass = {
+        ...cls,
+        status: isPast ? 'completed' : cls.isRescheduled ? 'rescheduled' : 'upcoming',
+      };
+
+      await updateClassRecord(user.id, updated);
+      toast.success('Class restored.');
+      await loadData();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to restore class.');
+    }
   };
 
-  const handleDelete = () => {
-    deleteStudent(student.id);
-    navigate('/');
+  const handleDelete = async () => {
+    if (!user) return;
+
+    try {
+      await deleteStudentRecord(user.id, student.id);
+      toast.success('Student deleted.');
+      navigate('/');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to delete student.');
+    }
   };
 
   return (
