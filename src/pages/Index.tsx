@@ -1,8 +1,9 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getStudents, getClasses } from '@/lib/store';
 import { formatTimeDisplay, formatDateDisplay } from '@/lib/scheduler';
 import { useAuth } from '@/contexts/AuthContext';
+import { fetchStudents, fetchClasses } from '@/lib/db';
+import { Student, ChessClass } from '@/lib/types';
 import CalendarView from '@/components/CalendarView';
 import AppShell from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
@@ -15,13 +16,15 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
 
-  const students = useMemo(() => getStudents(), []);
-  const allClasses = useMemo(() => getClasses(), []);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [allClasses, setAllClasses] = useState<ChessClass[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   const coachTimezone = profile?.timezone || 'Asia/Kolkata';
   const [now, setNow] = useState(() => new Date());
@@ -33,6 +36,31 @@ const Index = () => {
 
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+
+      setLoadingData(true);
+
+      try {
+        const [studentsData, classesData] = await Promise.all([
+          fetchStudents(user.id),
+          fetchClasses(user.id),
+        ]);
+
+        setStudents(studentsData);
+        setAllClasses(classesData);
+      } catch (error) {
+        console.error(error);
+        toast.error('Failed to load dashboard data.');
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
 
   const formattedCoachDate = useMemo(() => {
     return new Intl.DateTimeFormat('en-US', {
@@ -94,6 +122,7 @@ const Index = () => {
   }, [students]);
 
   const greetingName = profile?.coach_name?.trim() || 'Coach';
+
   const topStudents = students
     .map((student) => {
       const studentClasses = allClasses.filter((c) => c.studentId === student.id);
@@ -133,7 +162,11 @@ const Index = () => {
         </header>
 
         <main className="max-w-7xl mx-auto px-4 py-8">
-          {students.length === 0 ? (
+          {loadingData ? (
+            <section className="rounded-3xl border bg-card p-8 shadow-sm">
+              <p className="text-muted-foreground">Loading dashboard...</p>
+            </section>
+          ) : students.length === 0 ? (
             <section className="rounded-3xl border bg-card p-8 md:p-12 shadow-sm">
               <div className="max-w-2xl">
                 <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-4">
