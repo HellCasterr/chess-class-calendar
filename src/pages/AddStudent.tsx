@@ -78,37 +78,42 @@ const AddStudent = () => {
 
     setSubmitting(true);
 
-    try {
-      const student: Student = {
-        id: crypto.randomUUID(),
-        name: name.trim(),
-        age: parseInt(age, 10),
-        country: country.trim(),
-        timezone,
-        subject: subject.trim(),
-        totalClasses: parseInt(totalClasses, 10),
-        classesPerWeek: parseInt(classesPerWeek, 10),
-        schedule: scheduleSlots.map((s) => ({
-          ...s,
-          inputTimezone: inputTimezone || timezone,
-        })),
-        createdAt: new Date().toISOString(),
-        startDate,
-      };
+   try {
+  const student: Student = {
+    id: crypto.randomUUID(),
+    name: name.trim(),
+    age: parseInt(age, 10),
+    country: country.trim(),
+    timezone,
+    subject: subject.trim(),
+    totalClasses: parseInt(totalClasses, 10),
+    classesPerWeek: parseInt(classesPerWeek, 10),
+    schedule: scheduleSlots.map((s) => ({
+      ...s,
+      inputTimezone: inputTimezone || timezone,
+    })),
+    createdAt: new Date().toISOString(),
+    startDate,
+  };
 
-      await createStudent(user.id, student);
+  await createStudent(user.id, student);
 
-      const classes = generateClasses(student);
-      await createClasses(user.id, classes);
+  try {
+    const classes = generateClasses(student);
+    await createClasses(user.id, classes);
+  } catch (classError) {
+    await deleteStudentRecord(user.id, student.id);
+    throw classError;
+  }
 
-      toast.success('Student added successfully.');
-      navigate('/');
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to save student.');
-    } finally {
-      setSubmitting(false);
-    }
+  toast.success('Student added successfully.');
+  navigate('/');
+} catch (error) {
+  console.error(error);
+  toast.error('Failed to save student.');
+} finally {
+  setSubmitting(false);
+}
   };
 
   return (
