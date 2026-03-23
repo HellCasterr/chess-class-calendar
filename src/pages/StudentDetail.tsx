@@ -62,16 +62,27 @@ const StudentDetail = () => {
     setLoadingData(true);
 
     try {
-      const [studentData, classesData] = await Promise.all([
-        fetchStudentById(user.id, id),
-        fetchClassesForStudent(user.id, id),
-      ]);
-
+      const studentData = await fetchStudentById(user.id, id);
       setStudent(studentData);
-      setClasses(classesData);
+
+      if (!studentData) {
+        setClasses([]);
+        return;
+      }
+
+      try {
+        const classesData = await fetchClassesForStudent(user.id, id);
+        setClasses(classesData);
+      } catch (classError) {
+        console.error('Failed to load classes:', classError);
+        setClasses([]);
+        toast.error('Student loaded, but classes could not be loaded.');
+      }
     } catch (error) {
-      console.error(error);
+      console.error('Failed to load student:', error);
       toast.error('Failed to load student details.');
+      setStudent(null);
+      setClasses([]);
     } finally {
       setLoadingData(false);
     }
