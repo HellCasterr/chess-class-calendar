@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AppShell from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { createStudent, createClasses, deleteStudentRecord } from '@/lib/db';
 import { Label } from '@/components/ui/label';
 import {
   Select,
