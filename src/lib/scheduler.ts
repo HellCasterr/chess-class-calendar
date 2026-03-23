@@ -36,7 +36,7 @@ export function generateClasses(student: Student): ChessClass[] {
       const isCompleted = utcTime < now.getTime();
       
       classes.push({
-        id: `${student.id}-${classCount}`,
+        id: crypto.randomUUID(),
         studentId: student.id,
         originalDate: adjustedDate,
         scheduledDate: adjustedDate,
